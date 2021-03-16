@@ -1,0 +1,206 @@
+diff --git a/README.md b/README.md
+index a670aa4..ebb69aa 100644
+--- a/README.md
++++ b/README.md
+@@ -139,6 +139,8 @@ git clone https://github.com/Bilibili/ijkplayer.git ijkplayer-android
+ cd ijkplayer-android
+ git checkout -B latest k0.8.8
+ 
++ANDROID_NDK=/home/radin/Projects/AndroidNDK14
++
+ ./init-android.sh
+ 
+ cd android/contrib
+diff --git a/android/compile-ijk.sh b/android/compile-ijk.sh
+index 95062ea..7da2de5 100755
+--- a/android/compile-ijk.sh
++++ b/android/compile-ijk.sh
+@@ -122,3 +122,12 @@ case "$REQUEST_TARGET" in
+     ;;
+ esac
+ 
++
++
++cp /media/DataUbuntu1/SourceOther/ijkplayer/android/ijkplayer/ijkplayer-armv7a/src/main/libs/armeabi-v7a/*.so /media/truecrypt33/Gerrit/CastServer_b-master/3drParty/ijkmedia/
++
++#cp /media/DataUbuntu1/SourceOther/ijkplayer/android/ijkplayer/ijkplayer-armv7a/src/main/libs/armeabi-v7a/*.so /media/truecrypt33/Gerrit/CastServer_c-master/3drParty/ijkmedia/
++
++cp /media/DataUbuntu1/SourceOther/ijkplayer/android/ijkplayer/ijkplayer-x86/src/main/libs/x86/*.so /media/truecrypt33/Gerrit/CastServer_d-master/3drParty/ijkmedia/x86
++#cp /media/DataUbuntu1/SourceOther/ijkplayer/android/ijkplayer/ijkplayer-armv7a/src/main/libs/armeabi-v7a/*.so /media/truecrypt33/Gerrit/CastServer_d-master/3drParty/ijkmedia/
++
+diff --git a/config/module-lite.sh b/config/module-lite.sh
+index d5ba3d0..1e3ee83 100755
+--- a/config/module-lite.sh
++++ b/config/module-lite.sh
+@@ -68,7 +68,7 @@ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --disable-encoders"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-encoder=png"
+ 
+ # ./configure --list-decoders
+-export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --disable-decoders"
++export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-decoders"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-decoder=aac"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-decoder=aac_latm"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-decoder=flv"
+@@ -87,7 +87,7 @@ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --disable-muxers"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-muxer=mp4"
+ 
+ # ./configure --list-demuxers
+-export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --disable-demuxers"
++export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-demuxers"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-demuxer=aac"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-demuxer=concat"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-demuxer=data"
+@@ -104,7 +104,7 @@ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-demuxer=hevc"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-demuxer=webm_dash_manifest"
+ 
+ # ./configure --list-parsers
+-export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --disable-parsers"
++export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-parsers"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-parser=aac"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-parser=aac_latm"
+ export COMMON_FF_CFG_FLAGS="$COMMON_FF_CFG_FLAGS --enable-parser=h264"
+diff --git a/ijkmedia/ijkplayer/Android.mk b/ijkmedia/ijkplayer/Android.mk
+index 14d1d3a..552c114 100644
+--- a/ijkmedia/ijkplayer/Android.mk
++++ b/ijkmedia/ijkplayer/Android.mk
+@@ -52,7 +52,7 @@ LOCAL_SRC_FILES += android/pipeline/ffpipeline_android.c
+ LOCAL_SRC_FILES += android/pipeline/ffpipenode_android_mediacodec_vdec.c
+ 
+ LOCAL_SRC_FILES += ijkavformat/allformats.c
+-LOCAL_SRC_FILES += ijkavformat/cJson.c
++LOCAL_SRC_FILES += ijkavformat/cJSON.c
+ LOCAL_SRC_FILES += ijkavformat/ijklas.c
+ LOCAL_SRC_FILES += ijkavformat/ijklivehook.c
+ LOCAL_SRC_FILES += ijkavformat/ijkmediadatasource.c
+diff --git a/ijkmedia/ijksdl/android/ijksdl_aout_android_audiotrack.c b/ijkmedia/ijksdl/android/ijksdl_aout_android_audiotrack.c
+index a25e78a..c9fa8bb 100644
+--- a/ijkmedia/ijksdl/android/ijksdl_aout_android_audiotrack.c
++++ b/ijkmedia/ijksdl/android/ijksdl_aout_android_audiotrack.c
+@@ -33,6 +33,27 @@
+ #include "ijksdl_android_jni.h"
+ #include "android_audiotrack.h"
+ 
++#include "ijksdl_aout_android_audiotrack_hook.h"
++
++static IjkHookAudio* g_pIjkHookAudio = NULL;
++
++void InitIjkHookAudio(IjkHookAudio* pHook)
++{
++	pHook->use_data = NULL;
++	pHook->mute_ijk = false;
++	pHook->speed_by_use = false;
++
++	pHook->InitAudio = NULL;
++	pHook->UninitAudio = NULL;
++	pHook->SetVolume = NULL;
++	pHook->PushData = NULL;
++}
++
++void SetIjkHookAudio(IjkHookAudio* pHook)
++{
++	g_pIjkHookAudio = pHook;
++}
++
+ #ifdef SDLTRACE
+ #undef SDLTRACE
+ #define SDLTRACE(...)
+@@ -69,6 +90,10 @@ typedef struct SDL_Aout_Opaque {
+     volatile bool speed_changed;
+ } SDL_Aout_Opaque;
+ 
++#include <sys/times.h>
++#include <sys/select.h>
++#include "libavutil/time.h"
++
+ static int aout_thread_n(JNIEnv *env, SDL_Aout *aout)
+ {
+     SDL_Aout_Opaque *opaque = aout->opaque;
+@@ -83,10 +108,33 @@ static int aout_thread_n(JNIEnv *env, SDL_Aout *aout)
+ 
+     SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
+ 
++    //Radin Audio
++    SDL_AudioSpec obtained;
++    SDL_Android_AudioTrack_get_target_spec(opaque->atrack, &obtained);
++
++    int audio_session_id = opaque->audio_session_id;
++	int freq = obtained.freq;
++	uint16_t format = obtained.format;
++	uint8_t channels = obtained.channels;
++	void* init_ret = NULL;
++	bool mute_ijk = false;
++	bool speed_by_use = false;
++	if (g_pIjkHookAudio)
++	{
++		mute_ijk = g_pIjkHookAudio->mute_ijk;
++		speed_by_use = g_pIjkHookAudio->speed_by_use;
++		if (mute_ijk)
++		{
++            SDL_Android_AudioTrack_set_volume(env, atrack, 0.0f, 0.0f);
++		}
++		init_ret = g_pIjkHookAudio->InitAudio(g_pIjkHookAudio->use_data, audio_session_id, freq, format, channels);
++	}
++
+     if (!opaque->abort_request && !opaque->pause_on)
+         SDL_Android_AudioTrack_play(env, atrack);
+ 
+     while (!opaque->abort_request) {
++
+         SDL_LockMutex(opaque->wakeup_mutex);
+         if (!opaque->abort_request && opaque->pause_on) {
+             SDL_Android_AudioTrack_pause(env, atrack);
+@@ -107,7 +155,17 @@ static int aout_thread_n(JNIEnv *env, SDL_Aout *aout)
+         }
+         if (opaque->need_set_volume) {
+             opaque->need_set_volume = 0;
+-            SDL_Android_AudioTrack_set_volume(env, atrack, opaque->left_volume, opaque->right_volume);
++
++            if (!mute_ijk)
++            {
++                SDL_Android_AudioTrack_set_volume(env, atrack, opaque->left_volume, opaque->right_volume);
++            }
++
++            //Radin Audio
++            if (g_pIjkHookAudio)
++            {
++            	g_pIjkHookAudio->SetVolume(g_pIjkHookAudio->use_data, audio_session_id, init_ret, (opaque->left_volume + opaque->right_volume) * 100 / 2);
++            }
+         }
+         if (opaque->speed_changed) {
+             opaque->speed_changed = 0;
+@@ -125,16 +183,29 @@ static int aout_thread_n(JNIEnv *env, SDL_Aout *aout)
+             opaque->need_flush = 0;
+             SDL_Android_AudioTrack_flush(env, atrack);
+         } else {
+-            int written = SDL_Android_AudioTrack_write(env, atrack, buffer, copy_size);
+-            if (written != copy_size) {
+-                ALOGW("AudioTrack: not all data copied %d/%d", (int)written, (int)copy_size);
+-            }
+-        }
++        	if (!speed_by_use)
++        	{
++                int written = SDL_Android_AudioTrack_write(env, atrack, buffer, copy_size);
++                if (written != copy_size) {
++                    ALOGW("AudioTrack: not all data copied %d/%d", (int)written, (int)copy_size);
++                }
++        	}
+ 
+-        // TODO: 1 if callback return -1 or 0
++            //Radin Audio
++            if (g_pIjkHookAudio)
++			{
++				g_pIjkHookAudio->PushData(g_pIjkHookAudio->use_data, audio_session_id, init_ret, buffer, copy_size);
++			}
++        }
+     }
+ 
+     SDL_Android_AudioTrack_free(env, atrack);
++
++    //Radin Audio
++    if (g_pIjkHookAudio)
++	{
++		g_pIjkHookAudio->UninitAudio(g_pIjkHookAudio->use_data, audio_session_id, init_ret);
++	}
+     return 0;
+ }
+ 
